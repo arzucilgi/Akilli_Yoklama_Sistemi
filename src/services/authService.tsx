@@ -9,6 +9,29 @@ interface SignUpData {
   password: string;
 }
 
+interface Course {
+  term: string;
+}
+
+// interface StudentCourse {
+//   student_id: string;
+//   students: {
+//     name: string;
+//     email: string;
+//     number: string;
+//   };
+// }
+
+interface AttendanceRecord {
+  student_id: string;
+  status: "Katıldı" | "Geç Kaldı" | "Katılmadı";
+}
+
+interface DailyAttendanceRecord {
+  status: "Katıldı" | "Geç Kaldı" | "Katılmadı";
+  date: string;
+}
+
 // export async function signInWithEmail(email: string, password: string) {
 //   const { data, error } = await supabase.auth.signInWithPassword({
 //     email,
@@ -20,7 +43,6 @@ interface SignUpData {
 // }
 
 export async function signInWithEmail(email: string, password: string) {
-  // 1. Giriş işlemi
   const {
     data: { user },
     error: authError,
@@ -33,7 +55,6 @@ export async function signInWithEmail(email: string, password: string) {
     throw new Error(authError?.message || "Giriş başarısız");
   }
 
-  // 2. Kullanıcıya ait profil bilgilerini al
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
@@ -44,7 +65,6 @@ export async function signInWithEmail(email: string, password: string) {
     throw new Error("Profil bilgileri alınamadı: " + profileError.message);
   }
 
-  // 3. Hem auth verisi hem de profil verisi dönülür
   return {
     user,
     profile,
@@ -57,7 +77,6 @@ export async function signUpWithEmail({
   email,
   password,
 }: SignUpData) {
-  // 1. Supabase Auth ile kullanıcı oluştur
   const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
@@ -67,34 +86,31 @@ export async function signUpWithEmail({
 
   if (!data.user) throw new Error("Kullanıcı oluşturulamadı");
 
-  // 2. Kullanıcı ID'si ile profili oluştur
-  const { error: profileError } = await supabase
-    .from("profiles") // kendi profil tablonun adı
-    .insert({
-      id: data.user.id, // auth tarafından oluşturulan user id
-      name,
-      surname,
-      email,
-    });
+  const { error: profileError } = await supabase.from("profiles").insert({
+    id: data.user.id,
+    name,
+    surname,
+    email,
+  });
 
   if (profileError) throw new Error(profileError.message);
 
   return data;
 }
 
-// Dönemleri getir
 export async function getAllTerms(): Promise<string[]> {
   const { data, error } = await supabase.from("courses").select("term");
   if (error) {
     toast.error(error.message);
     return [];
   }
-  // Tekrarlı dönem isimlerini filtrele
-  const uniqueTerms = [...new Set(data.map((course) => course.term))];
+
+  const uniqueTerms = [
+    ...new Set((data as Course[]).map((course) => course.term)),
+  ];
   return uniqueTerms;
 }
 
-// Seçilen döneme göre dersleri getir
 export async function getCoursesByTerm(term: string) {
   const { data, error } = await supabase
     .from("courses")
@@ -107,22 +123,6 @@ export async function getCoursesByTerm(term: string) {
   }
   return data;
 }
-
-// export const getStudentsByCourseId = async (courseId: string) => {
-//   const { data, error } = await supabase
-//     .from('student_courses')
-//     .select('student_id, students ( id, name, email, number )')
-//     .eq('course_id', courseId);
-
-//   if (error) throw error;
-
-//   return data.map((item: any) => ({
-//     id: item.students.id,
-//     name: item.students.name,
-//     email: item.students.email,
-//     number: item.students.number,
-//   }));
-// };
 
 //Günlük yoklamayı topluca veritabanına aktarmak istiyorsan
 export const submitAttendanceForStudents = async (attendanceData: any[]) => {
@@ -143,7 +143,6 @@ export const submitAttendanceForStudents = async (attendanceData: any[]) => {
   return { data, error };
 };
 
-//Belirli bir derste ve belirli bir tarihte yapılan tüm yoklama kayıtlarını getirir.
 export const getAttendanceByCourseAndDate = async (
   courseId: string,
   date: string
@@ -158,7 +157,6 @@ export const getAttendanceByCourseAndDate = async (
   return data;
 };
 
-//Belirtilen döneme ait derslerin program bilgilerini (gün, saat, oda, ders bilgileri) veritabanından çekip getirir.
 export const getCourseSchedule = async (term: string) => {
   const { data, error } = await supabase
     .from("course_schedule")
@@ -195,7 +193,6 @@ export const getStudentsByCourseId = async (courseId: string) => {
   }));
 };
 
-// id ile ders bilgisini getir
 export async function getCourseById(courseId: string) {
   const { data, error } = await supabase
     .from("courses")
@@ -207,7 +204,6 @@ export async function getCourseById(courseId: string) {
   return data;
 }
 
-//Belirtilen kursa ait tüm ders programı kayıtlarını getirir.
 export const getScheduleByCourseId = async (courseId: string) => {
   const { data, error } = await supabase
     .from("course_schedule")
@@ -232,10 +228,9 @@ export const getAllCourses = async () => {
   return data;
 };
 
-// O kursa kayıtlı öğrenci bazında katılım, geç kalma ve yoklama sayıları olan bir nesne döndürülür.
 export const getAttendanceStatsForStudents = async (courseId: string) => {
   const { data, error } = await supabase
-    .from("attendances") // doğru tablo adı
+    .from("attendances")
     .select("student_id, status")
     .eq("course_id", courseId);
 
@@ -246,35 +241,24 @@ export const getAttendanceStatsForStudents = async (courseId: string) => {
 
   const stats: Record<
     string,
-    {
-      attended: number;
-      late: number;
-      absent: number;
-    }
+    { attended: number; late: number; absent: number }
   > = {};
 
-  data.forEach(({ student_id, status }) => {
-    const sid = String(student_id); // uuid'leri string'e çevirerek anahtar yap
-    if (!stats[sid]) {
-      stats[sid] = { attended: 0, late: 0, absent: 0 };
-    }
+  (data as AttendanceRecord[]).forEach(({ student_id, status }) => {
+    const sid = String(student_id);
+    if (!stats[sid]) stats[sid] = { attended: 0, late: 0, absent: 0 };
 
-    if (status === "Katıldı") {
-      stats[sid].attended++;
-    } else if (status === "Geç Kaldı") {
-      stats[sid].late++;
-    } else if (status === "Katılmadı") {
-      stats[sid].absent++;
-    }
+    if (status === "Katıldı") stats[sid].attended++;
+    else if (status === "Geç Kaldı") stats[sid].late++;
+    else if (status === "Katılmadı") stats[sid].absent++;
   });
 
   return stats;
 };
 
-// Bugünkü dersleri getir (giriş yapan kullanıcının dönemine göre filtrelenmiş)
 export const getTodaySchedule = async (term: string) => {
   const today = new Date();
-  const weekday = today.toLocaleDateString("tr-TR", { weekday: "long" }); // Örn: Pazartesi
+  const weekday = today.toLocaleDateString("tr-TR", { weekday: "long" });
 
   const { data, error } = await supabase
     .from("course_schedule")
@@ -300,7 +284,6 @@ export const getTodaySchedule = async (term: string) => {
   return data;
 };
 
-// Yardımcı fonksiyon: Bugünün adı
 const days = [
   "Pazar",
   "Pazartesi",
@@ -312,14 +295,11 @@ const days = [
 ];
 const getTodayName = () => days[new Date().getDay()];
 
-//Bugün için seçilen dönemde, saat olarak henüz devam eden ve yoklaması alınmamış derslerin listesini getirir.
 export const getPendingAttendance = async (selectedTerm: string) => {
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
-  // const nowStr = today.toTimeString().slice(0, 5); // HH:mm
+  const todayStr = today.toISOString().split("T")[0];
   const todayName = getTodayName();
 
-  // 1. Bugünün derslerini al (start_time veya end_time farketmez, tüm dersler)
   const { data: schedules, error: scheduleError } = await supabase
     .from("course_schedule")
     .select(
@@ -343,16 +323,9 @@ export const getPendingAttendance = async (selectedTerm: string) => {
 
   if (scheduleError) throw scheduleError;
 
-  // 2. Devam eden veya bitmiş dersleri filtrele
-  // const relevantSchedules = schedules.filter(s => s.end_time >= nowStr);
+  const pendingLessons: typeof schedules = [];
 
-  // Hiç filtreleme yapma, çünkü hepsini kontrol etmek istiyoruz:
-  const relevantSchedules = schedules;
-
-  const pendingLessons: any[] = [];
-
-  // 3. Her ders için o güne ait yoklama kontrolü
-  for (const schedule of relevantSchedules) {
+  for (const schedule of schedules as any[]) {
     const { data: attendance, error: attendanceError } = await supabase
       .from("attendances")
       .select("id")
@@ -361,17 +334,12 @@ export const getPendingAttendance = async (selectedTerm: string) => {
 
     if (attendanceError) throw attendanceError;
 
-    // Eğer yoklama yoksa ekle
-    if (!attendance || attendance.length === 0) {
-      pendingLessons.push(schedule);
-    }
+    if (!attendance || attendance.length === 0) pendingLessons.push(schedule);
   }
 
   return pendingLessons;
 };
 
-//Bu fonksiyon, seçilen derse ait yoklama kayıtlarında kaç farklı tarih olduğunu
-// (yani haftalık ya da günlük katılım verisi olan tarihleri) bulmak ve bu tarihleri sıralı olarak almak için kullanılır.
 export const getWeeksByCourseAndTerm = async (courseId: string) => {
   const { data, error } = await supabase
     .from("attendances")
@@ -380,19 +348,20 @@ export const getWeeksByCourseAndTerm = async (courseId: string) => {
 
   if (error) throw error;
 
-  const uniqueWeeks = Array.from(new Set(data.map((item) => item.date))).sort();
+  const uniqueWeeks = Array.from(
+    new Set((data as { date: string }[]).map((item) => item.date))
+  ).sort();
   return uniqueWeeks;
 };
 
-//Bu fonksiyon, bir derse (courseId) ve seçilen haftaya (selectedWeek) ait haftalık yoklama istatistiklerini getirir.
 import { startOfWeek, endOfWeek } from "date-fns";
 
 export const getWeeklyAttendanceStats = async (
   courseId: string,
   selectedWeek: string
 ) => {
-  const start = startOfWeek(new Date(selectedWeek), { weekStartsOn: 1 }); // Pazartesi
-  const end = endOfWeek(new Date(selectedWeek), { weekStartsOn: 1 }); // Pazar
+  const start = startOfWeek(new Date(selectedWeek), { weekStartsOn: 1 });
+  const end = endOfWeek(new Date(selectedWeek), { weekStartsOn: 1 });
 
   const { data, error } = await supabase
     .from("attendances")
@@ -412,16 +381,13 @@ export const getWeeklyAttendanceStats = async (
     Katılmadı: 0,
   };
 
-  for (const record of data) {
-    if (record.status in stats) {
-      stats[record.status as keyof typeof stats]++;
-    }
-  }
+  (data as DailyAttendanceRecord[]).forEach((record) => {
+    if (record.status in stats) stats[record.status as keyof typeof stats]++;
+  });
 
   return [stats];
 };
 
-// GÜN BAZLI YOKLAMA VERİLERİ GETİR
 type AttendanceStatus = {
   Katıldı: number;
   "Geç Kaldı": number;
@@ -432,8 +398,8 @@ export const getDailyAttendanceStats = async (
   courseId: string,
   selectedWeek: string
 ) => {
-  const start = startOfWeek(new Date(selectedWeek), { weekStartsOn: 1 }); // Pazartesi
-  const end = endOfWeek(new Date(selectedWeek), { weekStartsOn: 1 }); // Pazar
+  const start = startOfWeek(new Date(selectedWeek), { weekStartsOn: 1 });
+  const end = endOfWeek(new Date(selectedWeek), { weekStartsOn: 1 });
 
   const { data, error } = await supabase
     .from("attendances")
@@ -446,14 +412,12 @@ export const getDailyAttendanceStats = async (
 
   const grouped: Record<string, AttendanceStatus> = {};
 
-  data.forEach((record) => {
+  (data as DailyAttendanceRecord[]).forEach((record) => {
     const day = record.date;
-    if (!grouped[day]) {
+    if (!grouped[day])
       grouped[day] = { Katıldı: 0, "Geç Kaldı": 0, Katılmadı: 0 };
-    }
-    if (record.status in grouped[day]) {
+    if (record.status in grouped[day])
       grouped[day][record.status as keyof AttendanceStatus]++;
-    }
   });
 
   return Object.entries(grouped).map(([day, status]) => ({

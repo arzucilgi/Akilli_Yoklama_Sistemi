@@ -94,7 +94,10 @@ const WeeklyAttendanceStats: React.FC = () => {
       setLoading(true);
       setError("");
       try {
-        const res: string[] = await getWeeksByCourseAndTerm(selectedCourseId);
+        // Tipi string[] olarak belirt
+        const res: string[] = (await getWeeksByCourseAndTerm(
+          selectedCourseId
+        )) as string[];
         setWeeks(res);
         if (res.length > 0) setSelectedWeek(res[0]);
       } catch {
