@@ -1,3 +1,4 @@
+// src/components/StudentAttendanceStats.tsx
 import React, { useEffect, useState } from "react";
 import {
   Card,
@@ -32,23 +33,40 @@ interface OutletContextType {
   selectedTerm: string;
 }
 
+interface Course {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  number: string;
+}
+
+interface StudentStats extends Student {
+  Katıldı: number;
+  "Geç Kaldı": number;
+  Katılmadı: number;
+}
+
 const StudentAttendanceStats: React.FC = () => {
   const { selectedTerm } = useOutletContext<OutletContextType>();
-  const [courses, setCourses] = useState<any[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-  // const [students, setStudents] = useState<any[]>([]);
-  const [stats, setStats] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [stats, setStats] = useState<StudentStats[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     if (!selectedTerm) return;
     setSelectedCourseId("");
-    // setStudents([]);
     setStats([]);
     const fetchCourses = async () => {
       try {
-        const res = await getCoursesByTerm(selectedTerm);
+        const res: Course[] = await getCoursesByTerm(selectedTerm);
         setCourses(res);
       } catch {
         setError("Dersler alınamadı");
@@ -59,7 +77,6 @@ const StudentAttendanceStats: React.FC = () => {
 
   useEffect(() => {
     if (!selectedCourseId) {
-      // setStudents([]);
       setStats([]);
       return;
     }
@@ -68,12 +85,15 @@ const StudentAttendanceStats: React.FC = () => {
       setLoading(true);
       setError("");
       try {
-        const studentList = await getStudentsByCourseId(selectedCourseId);
-        const attendanceStats = await getAttendanceStatsForStudents(
+        const studentList: Student[] = await getStudentsByCourseId(
           selectedCourseId
         );
+        const attendanceStats: Record<
+          string,
+          { attended: number; late: number; absent: number }
+        > = await getAttendanceStatsForStudents(selectedCourseId);
 
-        const merged = studentList.map((student) => {
+        const merged: StudentStats[] = studentList.map((student) => {
           const s = attendanceStats[student.id] || {
             attended: 0,
             late: 0,
@@ -90,7 +110,6 @@ const StudentAttendanceStats: React.FC = () => {
           };
         });
 
-        // setStudents(studentList);
         setStats(merged);
       } catch {
         setError("İstatistikler alınamadı");
