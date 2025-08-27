@@ -89,8 +89,7 @@
 
 // export default CourseSchedulePage;
 
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Typography,
   Box,
@@ -102,24 +101,22 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  colors
-} from '@mui/material';
-import { useOutletContext } from 'react-router-dom';
-import { getCourseSchedule } from '../services/authService';
-import { blue } from '@mui/material/colors';
+} from "@mui/material";
+import { useOutletContext } from "react-router-dom";
+import { getCourseSchedule } from "../services/authService";
 
 interface OutletContextType {
   selectedTerm: string;
 }
 
 const daysOrder = [
-  'Pazartesi',
-  'Salı',
-  'Çarşamba',
-  'Perşembe',
-  'Cuma',
-  'Cumartesi',
-  'Pazar'
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
+  "Pazar",
 ];
 
 const CourseSchedulePage: React.FC = () => {
@@ -139,7 +136,7 @@ const CourseSchedulePage: React.FC = () => {
         const result = await getCourseSchedule(selectedTerm);
         setSchedule(result);
       } catch (error) {
-        console.error('Program alınamadı:', error);
+        console.error("Program alınamadı:", error);
       } finally {
         setLoading(false);
       }
@@ -169,35 +166,36 @@ const CourseSchedulePage: React.FC = () => {
 
   return (
     <Box p={3}>
-    <Typography
-  variant="h5"
-  mb={3}
-  sx={{
-    color: '#0c3e8b',
-    fontWeight: 600,
-    fontSize: '28px',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 1
-  }}
->
-  Ders Programı - {selectedTerm || 'Dönem Seçilmemiş'}
-</Typography>
-
+      <Typography
+        variant="h5"
+        mb={3}
+        sx={{
+          color: "#0c3e8b",
+          fontWeight: 600,
+          fontSize: "28px",
+          textAlign: "center",
+          textTransform: "uppercase",
+          letterSpacing: 1,
+        }}
+      >
+        Ders Programı - {selectedTerm || "Dönem Seçilmemiş"}
+      </Typography>
 
       {loading ? (
         <CircularProgress />
-      ) : selectedTerm === '' ? (
+      ) : selectedTerm === "" ? (
         <Typography>Lütfen üst menüden bir dönem seçin.</Typography>
       ) : (
-        <TableContainer component={Paper} className='headerStyles'>
+        <TableContainer component={Paper} className="headerStyles">
           <Table>
-            <TableHead className='headerStyles'>
-              <TableRow >
-                <TableCell><strong className='headerSchedule'>Saat</strong></TableCell>
+            <TableHead className="headerStyles">
+              <TableRow>
+                <TableCell>
+                  <strong className="headerSchedule">Saat</strong>
+                </TableCell>
                 {daysOrder.map((day) => (
-                  <TableCell key={day} align="center" >
-                    <strong className='headerSchedule'>{day}</strong>
+                  <TableCell key={day} align="center">
+                    <strong className="headerSchedule">{day}</strong>
                   </TableCell>
                 ))}
               </TableRow>
@@ -205,22 +203,34 @@ const CourseSchedulePage: React.FC = () => {
             <TableBody>
               {timeSlots.map((slot) => (
                 <TableRow key={slot}>
-                  <TableCell sx={{color:'#0c3e8b', fontWeight:300, backgroundColor:'rgba(247, 247, 247, 1)'}}>{slot}</TableCell>
+                  <TableCell
+                    sx={{
+                      color: "#0c3e8b",
+                      fontWeight: 300,
+                      backgroundColor: "rgba(247, 247, 247, 1)",
+                    }}
+                  >
+                    {slot}
+                  </TableCell>
                   {daysOrder.map((day) => {
                     const course = scheduleMap[day][slot];
                     return (
-                      <TableCell key={day} align="center"  sx={
-                      {backgroundColor:"rgba(247, 247, 247, 1)"}
-                      }>
+                      <TableCell
+                        key={day}
+                        align="center"
+                        sx={{ backgroundColor: "rgba(247, 247, 247, 1)" }}
+                      >
                         {course ? (
                           <>
-                            <Typography variant="subtitle2">{course.course.name}</Typography>
+                            <Typography variant="subtitle2">
+                              {course.course.name}
+                            </Typography>
                             <Typography variant="body2" color="text.secondary">
                               {course.course.code} | Salon: {course.room}
                             </Typography>
                           </>
                         ) : (
-                          '-'
+                          "-"
                         )}
                       </TableCell>
                     );
